@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -28,11 +29,11 @@ const HeroSection = () => {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-          <Button variant="hero" size="xl">
-            Start Your Journey
+          <Button variant="hero" size="xl" asChild>
+            <Link to="/auth">Start Your Journey</Link>
           </Button>
-          <Button variant="heroOutline" size="xl">
-            View Demo
+          <Button variant="heroOutline" size="xl" asChild>
+            <Link to="/auth">View Demo</Link>
           </Button>
         </div>
       </div>
