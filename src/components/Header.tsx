@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,11 +19,11 @@ const Header = () => {
 
         {/* Navigation */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="text-foreground font-medium">
-            Sign In
+          <Button variant="ghost" className="text-foreground font-medium" asChild>
+            <Link to="/auth">Sign In</Link>
           </Button>
-          <Button variant="hero" size="default">
-            Get Started
+          <Button variant="hero" size="default" asChild>
+            <Link to="/auth">Get Started</Link>
           </Button>
         </div>
       </nav>
