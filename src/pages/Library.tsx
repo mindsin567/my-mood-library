@@ -1,0 +1,308 @@
+import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { Plus, Trash2, Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, Image as ImageIcon, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import DashboardLayout from '@/components/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+type MoodType = 'happy' | 'calm' | 'neutral' | 'anxious' | 'sad' | 'angry' | 'excited' | 'tired';
+
+const moods: { type: MoodType; icon: typeof Smile; label: string; color: string }[] = [
+  { type: 'happy', icon: Smile, label: '😊', color: 'text-yellow-500' },
+  { type: 'excited', icon: Zap, label: '⚡', color: 'text-orange-500' },
+  { type: 'calm', icon: Heart, label: '💚', color: 'text-green-500' },
+  { type: 'neutral', icon: Meh, label: '😐', color: 'text-gray-500' },
+  { type: 'tired', icon: Moon, label: '😴', color: 'text-indigo-500' },
+  { type: 'anxious', icon: Cloud, label: '😰', color: 'text-purple-500' },
+  { type: 'sad', icon: Frown, label: '😢', color: 'text-blue-500' },
+  { type: 'angry', icon: Flame, label: '😠', color: 'text-red-500' },
+];
+
+const moodEmojis: Record<MoodType, string> = {
+  happy: '😊',
+  excited: '⚡',
+  calm: '💚',
+  neutral: '😐',
+  tired: '😴',
+  anxious: '😰',
+  sad: '😢',
+  angry: '😠',
+};
+
+interface JournalEntry {
+  id: string;
+  title: string | null;
+  content: string;
+  mood: MoodType;
+  photo_url: string | null;
+  created_at: string;
+}
+
+const Library = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [selectedMood, setSelectedMood] = useState<MoodType>('neutral');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchEntries = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to load entries.', variant: 'destructive' });
+    } else {
+      setEntries(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchEntries();
+  }, [user]);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const handleSave = async () => {
+    if (!content.trim() || !user) return;
+    
+    setIsSaving(true);
+    let photoUrl: string | null = null;
+
+    try {
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('journal-photos')
+          .upload(filePath, photoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('journal-photos')
+          .getPublicUrl(filePath);
+        
+        photoUrl = urlData.publicUrl;
+      }
+
+      const { error } = await supabase.from('journal_entries').insert({
+        user_id: user.id,
+        title: title.trim() || null,
+        content: content.trim(),
+        mood: selectedMood,
+        photo_url: photoUrl,
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Success!', description: 'Journal entry saved.' });
+      setTitle('');
+      setContent('');
+      setSelectedMood('neutral');
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setIsDialogOpen(false);
+      fetchEntries();
+    } catch {
+      toast({ title: 'Error', description: 'Failed to save entry.', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string, photoUrl: string | null) => {
+    try {
+      if (photoUrl && user) {
+        const path = photoUrl.split('/journal-photos/')[1];
+        if (path) {
+          await supabase.storage.from('journal-photos').remove([path]);
+        }
+      }
+
+      const { error } = await supabase.from('journal_entries').delete().eq('id', id);
+      if (error) throw error;
+
+      setEntries(entries.filter(e => e.id !== id));
+      toast({ title: 'Deleted', description: 'Entry removed.' });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Digital <span className="text-gradient-primary">Library</span>
+            </h1>
+            <p className="text-muted-foreground">Write your daily story with emojis expressing your mood.</p>
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="hero" className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Write Your Story</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <Input
+                  placeholder="Title (optional)"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">How are you feeling?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {moods.map((m) => (
+                      <button
+                        key={m.type}
+                        onClick={() => setSelectedMood(m.type)}
+                        className={`text-2xl p-2 rounded-lg transition-all ${
+                          selectedMood === m.type 
+                            ? 'bg-primary/20 ring-2 ring-primary scale-110' 
+                            : 'hover:bg-secondary'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Textarea
+                  placeholder="Write about your day..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[150px]"
+                />
+
+                <div>
+                  {photoPreview ? (
+                    <div className="relative inline-block">
+                      <img src={photoPreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
+                      <button
+                        onClick={removePhoto}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg hover:bg-secondary transition-colors">
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="text-sm">Add Photo</span>
+                      <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                <Button onClick={handleSave} disabled={!content.trim() || isSaving} className="w-full">
+                  {isSaving ? 'Saving...' : 'Save Entry'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {entries.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <p className="text-muted-foreground">No journal entries yet. Start writing your story!</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {entries.map((entry) => (
+              <Card key={entry.id} className="group">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{moodEmojis[entry.mood]}</span>
+                      <CardTitle className="text-lg">{entry.title || 'Untitled'}</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(entry.created_at), 'MMM d, yyyy • h:mm a')}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(entry.id, entry.photo_url)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground whitespace-pre-wrap">{entry.content}</p>
+                  {entry.photo_url && (
+                    <img
+                      src={entry.photo_url}
+                      alt="Journal photo"
+                      className="mt-4 rounded-lg max-h-64 object-cover"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Library;

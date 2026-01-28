@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          mood: Database["public"]["Enums"]["mood_type"]
+          photo_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          mood: Database["public"]["Enums"]["mood_type"]
+          photo_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          mood?: Database["public"]["Enums"]["mood_type"]
+          photo_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           created_at: string
@@ -41,25 +74,37 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          date_of_birth: string | null
           display_name: string | null
           id: string
+          location: string | null
+          phone_number: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string | null
           id?: string
+          location?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           display_name?: string | null
           id?: string
+          location?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id?: string
         }
