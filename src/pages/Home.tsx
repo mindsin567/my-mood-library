@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCircle, BarChart3 } from 'lucide-react';
+import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCircle, BarChart3, Award } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 
@@ -35,6 +36,11 @@ interface JournalEntry {
   created_at: string;
 }
 
+interface Streak {
+  current_mood_streak: number;
+  current_journal_streak: number;
+}
+
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -42,12 +48,14 @@ const Home = () => {
   const [recentJournals, setRecentJournals] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
+  const [streaks, setStreaks] = useState<Streak | null>(null);
+  const [achievementCount, setAchievementCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
 
-      const [moodsRes, journalsRes, profileRes] = await Promise.all([
+      const [moodsRes, journalsRes, profileRes, streaksRes, achievementsRes] = await Promise.all([
         supabase
           .from('mood_entries')
           .select('*')
@@ -65,11 +73,22 @@ const Home = () => {
           .select('display_name')
           .eq('user_id', user.id)
           .maybeSingle(),
+        supabase
+          .from('user_streaks')
+          .select('current_mood_streak, current_journal_streak')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_achievements')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
       ]);
 
       if (moodsRes.data) setRecentMoods(moodsRes.data);
       if (journalsRes.data) setRecentJournals(journalsRes.data);
       if (profileRes.data) setProfile(profileRes.data);
+      if (streaksRes.data) setStreaks(streaksRes.data);
+      if (achievementsRes.count) setAchievementCount(achievementsRes.count);
       setLoading(false);
     };
 
@@ -105,6 +124,40 @@ const Home = () => {
             Track your emotions and reflect on your mental wellness journey.
           </p>
         </div>
+
+        {/* Streaks Banner */}
+        {(streaks?.current_mood_streak || streaks?.current_journal_streak || achievementCount > 0) && (
+          <Card className="bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-blue-500/10 border-0">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-around text-center">
+                {streaks?.current_mood_streak ? (
+                  <div>
+                    <div className="flex items-center justify-center gap-1 text-orange-500 text-xl font-bold">
+                      🔥 {streaks.current_mood_streak}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Mood Streak</p>
+                  </div>
+                ) : null}
+                {streaks?.current_journal_streak ? (
+                  <div>
+                    <div className="flex items-center justify-center gap-1 text-blue-500 text-xl font-bold">
+                      ✍️ {streaks.current_journal_streak}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Journal Streak</p>
+                  </div>
+                ) : null}
+                {achievementCount > 0 && (
+                  <div onClick={() => navigate('/summary')} className="cursor-pointer">
+                    <div className="flex items-center justify-center gap-1 text-yellow-500 text-xl font-bold">
+                      <Award className="w-5 h-5" /> {achievementCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Achievements</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

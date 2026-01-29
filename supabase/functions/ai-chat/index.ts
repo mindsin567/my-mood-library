@@ -11,18 +11,80 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type, moods, journals } = await req.json();
+    const { messages, type, moods, journals, journalContent } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    let systemPrompt = "";
-    let userContent = "";
+    // Analyze journal entry for emotions and generate reflection
+    if (type === "analyze_journal") {
+      const analyzePrompt = `You are an emotion analyzer. Analyze this journal entry and:
+1. Detect the primary emotions (return as JSON array of tags like: stress, motivation, anxiety, joy, gratitude, fear, hope, frustration, peace, excitement, loneliness, confidence)
+2. Generate 2-3 thoughtful reflection questions to help the user explore their feelings deeper
+
+Journal entry: "${journalContent}"
+
+Respond in this exact JSON format:
+{
+  "emotion_tags": ["tag1", "tag2"],
+  "reflection_questions": "1. Question one?\\n2. Question two?\\n3. Question three?"
+}`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "user", content: analyzePrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("AI gateway error");
+      }
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || "{}";
+      
+      try {
+        const parsed = JSON.parse(content);
+        return new Response(
+          JSON.stringify({
+            emotion_tags: parsed.emotion_tags || [],
+            reflection_questions: parsed.reflection_questions || ""
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch {
+        return new Response(
+          JSON.stringify({ emotion_tags: [], reflection_questions: "" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     if (type === "summary") {
-      systemPrompt = `You are a compassionate wellness analyst. Analyze the user's mood entries and journal entries from the past week. 
+      const systemPrompt = `You are a compassionate wellness analyst. Analyze the user's mood entries and journal entries from the past week. 
       Provide insights in a warm, supportive tone. Focus on patterns, emotional trends, and areas of growth.
       Be encouraging and constructive. Use bullet points for clarity.`;
       
@@ -38,7 +100,7 @@ serve(async (req) => {
           ).join(' | ')}`
         : 'No journal entries this week.';
 
-      userContent = `Please analyze my week:\n\n${moodSummary}\n\n${journalSummary}\n\nProvide:\n1. A brief summary of my emotional patterns\n2. Key observations`;
+      const userContent = `Please analyze my week:\n\n${moodSummary}\n\n${journalSummary}\n\nProvide:\n1. A brief summary of my emotional patterns\n2. Key observations`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -104,7 +166,7 @@ serve(async (req) => {
     }
 
     // Regular chat
-    systemPrompt = `You are a compassionate and supportive AI wellness companion named Mindi. 
+    const systemPrompt = `You are a compassionate and supportive AI wellness companion named Mindi. 
     Your role is to:
     - Listen empathetically to the user's feelings and concerns
     - Offer gentle, non-judgmental support

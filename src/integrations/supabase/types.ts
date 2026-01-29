@@ -16,8 +16,10 @@ export type Database = {
     Tables: {
       journal_entries: {
         Row: {
+          ai_reflection: string | null
           content: string
           created_at: string
+          emotion_tags: string[] | null
           id: string
           mood: Database["public"]["Enums"]["mood_type"]
           photo_url: string | null
@@ -26,8 +28,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_reflection?: string | null
           content: string
           created_at?: string
+          emotion_tags?: string[] | null
           id?: string
           mood: Database["public"]["Enums"]["mood_type"]
           photo_url?: string | null
@@ -36,8 +40,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_reflection?: string | null
           content?: string
           created_at?: string
+          emotion_tags?: string[] | null
           id?: string
           mood?: Database["public"]["Enums"]["mood_type"]
           photo_url?: string | null
@@ -105,6 +111,69 @@ export type Database = {
           id?: string
           location?: string | null
           phone_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_name: string
+          achievement_type: string
+          earned_at: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          achievement_name: string
+          achievement_type: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          achievement_name?: string
+          achievement_type?: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          current_journal_streak: number
+          current_mood_streak: number
+          id: string
+          last_journal_date: string | null
+          last_mood_date: string | null
+          longest_journal_streak: number
+          longest_mood_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_journal_streak?: number
+          current_mood_streak?: number
+          id?: string
+          last_journal_date?: string | null
+          last_mood_date?: string | null
+          longest_journal_streak?: number
+          longest_mood_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_journal_streak?: number
+          current_mood_streak?: number
+          id?: string
+          last_journal_date?: string | null
+          last_mood_date?: string | null
+          longest_journal_streak?: number
+          longest_mood_streak?: number
           updated_at?: string
           user_id?: string
         }
