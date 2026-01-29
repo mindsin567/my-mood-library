@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useStreaks } from '@/hooks/useStreaks';
 
 type MoodType = 'happy' | 'calm' | 'neutral' | 'anxious' | 'sad' | 'angry' | 'excited' | 'tired';
 
@@ -29,6 +30,7 @@ const MoodPicker = ({ onMoodSaved }: MoodPickerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { updateMoodStreak, checkTotalAchievements } = useStreaks();
 
   const handleSaveMood = async () => {
     if (!selectedMood || !user) return;
@@ -42,6 +44,10 @@ const MoodPicker = ({ onMoodSaved }: MoodPickerProps) => {
       });
 
       if (error) throw error;
+
+      // Update streaks and check achievements
+      await updateMoodStreak();
+      await checkTotalAchievements();
 
       toast({
         title: 'Mood saved!',

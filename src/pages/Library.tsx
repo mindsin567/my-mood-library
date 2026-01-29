@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Plus, Trash2, Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, Image as ImageIcon, X } from 'lucide-react';
+import { Plus, Trash2, Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, Image as ImageIcon, X, Sparkles, Tag, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useStreaks } from '@/hooks/useStreaks';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 type MoodType = 'happy' | 'calm' | 'neutral' | 'anxious' | 'sad' | 'angry' | 'excited' | 'tired';
 
@@ -41,12 +43,15 @@ interface JournalEntry {
   content: string;
   mood: MoodType;
   photo_url: string | null;
+  emotion_tags: string[] | null;
+  ai_reflection: string | null;
   created_at: string;
 }
 
 const Library = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { updateJournalStreak, checkTotalAchievements } = useStreaks();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -56,6 +61,9 @@ const Library = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiReflection, setAiReflection] = useState<string | null>(null);
+  const [emotionTags, setEmotionTags] = useState<string[]>([]);
 
   const fetchEntries = async () => {
     if (!user) return;
@@ -93,6 +101,29 @@ const Library = () => {
     setPhotoPreview(null);
   };
 
+  const analyzeJournal = async () => {
+    if (!content.trim() || content.length < 20) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const response = await supabase.functions.invoke('ai-chat', {
+        body: {
+          type: 'analyze_journal',
+          journalContent: content,
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      setEmotionTags(response.data.emotion_tags || []);
+      setAiReflection(response.data.reflection_questions || null);
+    } catch (error) {
+      console.error('Analysis error:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!content.trim() || !user) return;
     
@@ -123,9 +154,15 @@ const Library = () => {
         content: content.trim(),
         mood: selectedMood,
         photo_url: photoUrl,
+        emotion_tags: emotionTags,
+        ai_reflection: aiReflection,
       });
 
       if (error) throw error;
+
+      // Update streaks and check achievements
+      await updateJournalStreak();
+      await checkTotalAchievements();
 
       toast({ title: 'Success!', description: 'Journal entry saved.' });
       setTitle('');
@@ -133,6 +170,8 @@ const Library = () => {
       setSelectedMood('neutral');
       setPhotoFile(null);
       setPhotoPreview(null);
+      setEmotionTags([]);
+      setAiReflection(null);
       setIsDialogOpen(false);
       fetchEntries();
     } catch {
@@ -220,12 +259,61 @@ const Library = () => {
                   </div>
                 </div>
 
-                <Textarea
-                  placeholder="Write about your day..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[150px]"
-                />
+                <div>
+                  <Textarea
+                    placeholder="Write about your day..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="min-h-[150px]"
+                  />
+                  {content.length >= 20 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={analyzeJournal}
+                      disabled={isAnalyzing}
+                      className="mt-2 gap-2"
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      {isAnalyzing ? 'Analyzing...' : 'Analyze Emotions'}
+                    </Button>
+                  )}
+                </div>
+
+                {/* AI Emotion Tags */}
+                {emotionTags.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      Detected Emotions
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {emotionTags.map((tag) => (
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Reflection Questions */}
+                {aiReflection && (
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      Reflection Questions
+                    </label>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {aiReflection}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   {photoPreview ? (
@@ -288,6 +376,25 @@ const Library = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-foreground whitespace-pre-wrap">{entry.content}</p>
+                  {entry.emotion_tags && entry.emotion_tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {entry.emotion_tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {entry.ai_reflection && (
+                    <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Reflection Questions
+                      </p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {entry.ai_reflection}
+                      </p>
+                    </div>
+                  )}
                   {entry.photo_url && (
                     <img
                       src={entry.photo_url}
