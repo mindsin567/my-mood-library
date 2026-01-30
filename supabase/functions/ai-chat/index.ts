@@ -92,15 +92,17 @@ User's answers:
 - Current mood: ${userAnswers.mood || 'not specified'}
 - Intensity: ${userAnswers.intensity || 'not specified'}  
 - What they need: ${userAnswers.intention || 'not specified'}
+- Preferred language: ${userAnswers.language || 'any'}
 - Music preference: ${userAnswers.preference || 'not specified'}
 
 Respond in this exact JSON format:
 {
   "message": "A short, warm 1-2 sentence message acknowledging their feelings (sound human, not AI)",
   "songs": [
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"},
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"},
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"}
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"}
   ],
   "books": [
     {"title": "Book Title", "author": "Author Name", "reason": "One sentence why this helps"},
@@ -110,7 +112,9 @@ Respond in this exact JSON format:
 
 Guidelines:
 - Keep message warm but brief (1-2 sentences max)
-- Suggest 3 real, well-known songs that match the mood and preference
+- Suggest 4 real, well-known songs in the user's preferred language
+- If "Any language" is selected, mix songs from different languages (English, Hindi, Spanish, Korean, etc.)
+- Include the language of each song
 - Suggest 2 real books focused on emotional well-being or personal growth
 - Book reasons should be short and personal (under 15 words)
 - Sound like a caring friend, not a clinical AI`;

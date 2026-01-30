@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
-import RecommendationsDialog from '@/components/RecommendationsDialog';
 
 const menuItems = [
   { title: 'Home', url: '/home', icon: Home },
@@ -68,19 +67,6 @@ const AppSidebar = () => {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Suggestions Button */}
-        <SidebarGroup>
-          <SidebarGroupContent className="px-2">
-            {!collapsed ? (
-              <RecommendationsDialog />
-            ) : (
-              <div className="flex justify-center">
-                <RecommendationsDialog />
-              </div>
-            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
+import RecommendationsDialog from '@/components/RecommendationsDialog';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -76,11 +77,14 @@ const Chatbot = () => {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto h-[calc(100vh-10rem)] flex flex-col">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            AI <span className="text-gradient-primary">Chatbot</span>
-          </h1>
-          <p className="text-muted-foreground">Your personal wellness companion.</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              AI <span className="text-gradient-primary">Chatbot</span>
+            </h1>
+            <p className="text-muted-foreground">Your personal wellness companion.</p>
+          </div>
+          <RecommendationsDialog />
         </div>
 
         <Card className="flex-1 flex flex-col overflow-hidden">
