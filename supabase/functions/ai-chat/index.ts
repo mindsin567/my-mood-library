@@ -86,38 +86,26 @@ Respond in this exact JSON format:
     // Generate personalized music and book recommendations
     if (type === "recommendations") {
       const userAnswers = answers || {};
-      const recommendPrompt = `You are a warm, empathetic wellness companion. Based on the user's responses, suggest music and books.
+      const recommendPrompt = `You're a caring friend giving music and book suggestions.
 
-User's answers:
-- Current mood: ${userAnswers.mood || 'not specified'}
-- Intensity: ${userAnswers.intensity || 'not specified'}  
-- What they need: ${userAnswers.intention || 'not specified'}
-- Preferred language: ${userAnswers.language || 'any'}
-- Music preference: ${userAnswers.preference || 'not specified'}
+User feels: ${userAnswers.mood || 'not specified'}
+Needs: ${userAnswers.intention || 'not specified'}
+Language: ${userAnswers.language || 'any'}
 
-Respond in this exact JSON format:
+Return JSON:
 {
-  "message": "A short, warm 1-2 sentence message acknowledging their feelings (sound human, not AI)",
+  "message": "One warm sentence (be human, not robotic)",
   "songs": [
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"},
-    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing", "language": "language"}
+    {"title": "Real Song", "artist": "Real Artist", "language": "lang"},
+    {"title": "Real Song", "artist": "Real Artist", "language": "lang"},
+    {"title": "Real Song", "artist": "Real Artist", "language": "lang"}
   ],
   "books": [
-    {"title": "Book Title", "author": "Author Name", "reason": "One sentence why this helps"},
-    {"title": "Book Title", "author": "Author Name", "reason": "One sentence why this helps"}
+    {"title": "Book", "author": "Author", "reason": "Why it helps (8 words max)"}
   ]
 }
 
-Guidelines:
-- Keep message warm but brief (1-2 sentences max)
-- Suggest 4 real, well-known songs in the user's preferred language
-- If "Any language" is selected, mix songs from different languages (English, Hindi, Spanish, Korean, etc.)
-- Include the language of each song
-- Suggest 2 real books focused on emotional well-being or personal growth
-- Book reasons should be short and personal (under 15 words)
-- Sound like a caring friend, not a clinical AI`;
+Rules: Real popular songs in chosen language. One helpful book. Sound like a friend.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -170,23 +158,17 @@ Guidelines:
     }
 
     if (type === "summary") {
-      const systemPrompt = `You are a compassionate wellness analyst. Analyze the user's mood entries and journal entries from the past week. 
-      Provide insights in a warm, supportive tone. Focus on patterns, emotional trends, and areas of growth.
-      Be encouraging and constructive. Use bullet points for clarity.`;
+      const systemPrompt = `You're a supportive wellness friend. Give brief, warm insights. Max 3 bullet points. Sound human.`;
       
       const moodSummary = moods?.length > 0 
-        ? `Mood entries: ${moods.map((m: {mood: string, note: string | null, created_at: string}) => 
-            `${m.mood}${m.note ? ` (${m.note})` : ''} on ${new Date(m.created_at).toLocaleDateString()}`
-          ).join(', ')}`
-        : 'No mood entries this week.';
+        ? `Moods: ${moods.map((m: {mood: string, note: string | null, created_at: string}) => m.mood).join(', ')}`
+        : 'No moods logged.';
       
       const journalSummary = journals?.length > 0
-        ? `Journal entries: ${journals.map((j: {content: string, mood: string, created_at: string}) => 
-            `"${j.content.slice(0, 100)}..." (${j.mood}) on ${new Date(j.created_at).toLocaleDateString()}`
-          ).join(' | ')}`
-        : 'No journal entries this week.';
+        ? `Journals: ${journals.length} entries`
+        : 'No journals.';
 
-      const userContent = `Please analyze my week:\n\n${moodSummary}\n\n${journalSummary}\n\nProvide:\n1. A brief summary of my emotional patterns\n2. Key observations`;
+      const userContent = `${moodSummary}\n${journalSummary}\n\nGive 2-3 quick observations about my week.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -223,9 +205,7 @@ Guidelines:
       const summaryContent = summaryResult.choices?.[0]?.message?.content || "Unable to generate summary.";
 
       // Generate suggestions
-      const suggestionsPrompt = `Based on the emotional patterns above, provide 3-5 specific, actionable wellness suggestions. 
-      Be supportive and practical. Consider activities, mindfulness practices, social connections, and self-care.
-      Format as a numbered list.`;
+      const suggestionsPrompt = `Give 2-3 quick, practical tips. One line each. Sound like a friend, not a therapist.`;
 
       const suggestionsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

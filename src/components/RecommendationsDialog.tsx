@@ -25,9 +25,10 @@ interface Question {
 interface Song {
   title: string;
   artist: string;
-  mood: string;
+  mood?: string;
   language?: string;
   audioUrl?: string;
+  albumArt?: string;
 }
 
 interface Book {
@@ -45,36 +46,19 @@ interface Recommendations {
 const questions: Question[] = [
   {
     id: 'mood',
-    text: "How are you feeling right now?",
-    options: ['Happy & Energetic', 'Calm & Peaceful', 'Stressed or Anxious', 'Sad or Low', 'Angry or Frustrated']
-  },
-  {
-    id: 'intensity',
-    text: "How intense is this feeling?",
-    options: ['Mild - just a hint', 'Moderate - noticeable', 'Strong - quite intense']
+    text: "How are you feeling?",
+    options: ['Happy', 'Calm', 'Stressed', 'Sad', 'Angry']
   },
   {
     id: 'intention',
-    text: "What would help you most right now?",
-    options: ['Relax and unwind', 'Get motivated', 'Focus on work', 'Process my emotions', 'Just distract myself']
+    text: "What do you need?",
+    options: ['Relax', 'Get motivated', 'Focus', 'Heal']
   },
   {
     id: 'language',
-    text: "Which language songs do you prefer?",
-    options: ['English', 'Hindi', 'Spanish', 'Korean (K-pop)', 'Japanese', 'Arabic', 'French', 'Tamil', 'Any language']
-  },
-  {
-    id: 'preference',
-    text: "What type of music do you enjoy?",
-    options: ['Instrumental/Lo-fi', 'Upbeat pop/rock', 'Classical/Piano', 'Nature sounds', 'Surprise me!']
+    text: "Song language?",
+    options: ['English', 'Hindi', 'Spanish', 'Korean', 'Any']
   }
-];
-
-// Sample royalty-free audio URLs for demo (you can replace with actual streaming service)
-const sampleAudioUrls = [
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
 ];
 
 const RecommendationsDialog = () => {
@@ -102,6 +86,7 @@ const RecommendationsDialog = () => {
   const getRecommendations = async () => {
     setIsLoading(true);
     try {
+      // Get AI recommendations
       const response = await supabase.functions.invoke('ai-chat', {
         body: {
           type: 'recommendations',
@@ -111,13 +96,17 @@ const RecommendationsDialog = () => {
 
       if (response.error) throw response.error;
 
-      // Add sample audio URLs to songs for demo
       const data = response.data;
-      if (data.songs) {
-        data.songs = data.songs.map((song: Song, i: number) => ({
-          ...song,
-          audioUrl: sampleAudioUrls[i % sampleAudioUrls.length]
-        }));
+      
+      // Fetch real song previews from Deezer
+      if (data.songs && data.songs.length > 0) {
+        const musicResponse = await supabase.functions.invoke('music-search', {
+          body: { songs: data.songs }
+        });
+        
+        if (musicResponse.data?.songs) {
+          data.songs = musicResponse.data.songs;
+        }
       }
 
       setRecommendations(data);
@@ -250,7 +239,14 @@ const RecommendationsDialog = () => {
                 <div className="space-y-2">
                   {recommendations.songs?.map((song, index) => (
                     <Card key={index} className="bg-secondary/50">
-                      <CardContent className="p-3 flex items-center justify-between">
+                      <CardContent className="p-2 flex items-center gap-3">
+                        {song.albumArt && (
+                          <img 
+                            src={song.albumArt} 
+                            alt={song.title}
+                            className="w-10 h-10 rounded object-cover shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{song.title}</p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -259,9 +255,10 @@ const RecommendationsDialog = () => {
                         </div>
                         <Button
                           size="icon"
-                          variant="ghost"
-                          className="shrink-0 ml-2"
+                          variant={playingIndex === index ? "default" : "ghost"}
+                          className="shrink-0"
                           onClick={() => togglePlay(index, song.audioUrl)}
+                          disabled={!song.audioUrl}
                         >
                           {playingIndex === index ? (
                             <Pause className="w-4 h-4" />
