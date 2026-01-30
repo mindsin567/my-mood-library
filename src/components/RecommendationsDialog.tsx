@@ -26,6 +26,7 @@ interface Song {
   title: string;
   artist: string;
   mood: string;
+  language?: string;
   audioUrl?: string;
 }
 
@@ -58,8 +59,13 @@ const questions: Question[] = [
     options: ['Relax and unwind', 'Get motivated', 'Focus on work', 'Process my emotions', 'Just distract myself']
   },
   {
+    id: 'language',
+    text: "Which language songs do you prefer?",
+    options: ['English', 'Hindi', 'Spanish', 'Korean (K-pop)', 'Japanese', 'Arabic', 'French', 'Tamil', 'Any language']
+  },
+  {
     id: 'preference',
-    text: "What type of content do you prefer?",
+    text: "What type of music do you enjoy?",
     options: ['Instrumental/Lo-fi', 'Upbeat pop/rock', 'Classical/Piano', 'Nature sounds', 'Surprise me!']
   }
 ];
@@ -247,7 +253,9 @@ const RecommendationsDialog = () => {
                       <CardContent className="p-3 flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{song.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {song.artist} {song.language && <span className="text-primary">• {song.language}</span>}
+                          </p>
                         </div>
                         <Button
                           size="icon"
