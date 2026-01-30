@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type, moods, journals, journalContent } = await req.json();
+    const { messages, type, moods, journals, journalContent, answers } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -78,6 +78,88 @@ Respond in this exact JSON format:
       } catch {
         return new Response(
           JSON.stringify({ emotion_tags: [], reflection_questions: "" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Generate personalized music and book recommendations
+    if (type === "recommendations") {
+      const userAnswers = answers || {};
+      const recommendPrompt = `You are a warm, empathetic wellness companion. Based on the user's responses, suggest music and books.
+
+User's answers:
+- Current mood: ${userAnswers.mood || 'not specified'}
+- Intensity: ${userAnswers.intensity || 'not specified'}  
+- What they need: ${userAnswers.intention || 'not specified'}
+- Music preference: ${userAnswers.preference || 'not specified'}
+
+Respond in this exact JSON format:
+{
+  "message": "A short, warm 1-2 sentence message acknowledging their feelings (sound human, not AI)",
+  "songs": [
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"},
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"},
+    {"title": "Song Name", "artist": "Artist Name", "mood": "calming/uplifting/focusing"}
+  ],
+  "books": [
+    {"title": "Book Title", "author": "Author Name", "reason": "One sentence why this helps"},
+    {"title": "Book Title", "author": "Author Name", "reason": "One sentence why this helps"}
+  ]
+}
+
+Guidelines:
+- Keep message warm but brief (1-2 sentences max)
+- Suggest 3 real, well-known songs that match the mood and preference
+- Suggest 2 real books focused on emotional well-being or personal growth
+- Book reasons should be short and personal (under 15 words)
+- Sound like a caring friend, not a clinical AI`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [{ role: "user", content: recommendPrompt }],
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("AI gateway error");
+      }
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || "{}";
+
+      try {
+        const parsed = JSON.parse(content);
+        return new Response(
+          JSON.stringify({
+            message: parsed.message || "Here are some suggestions for you.",
+            songs: parsed.songs || [],
+            books: parsed.books || []
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch {
+        return new Response(
+          JSON.stringify({ message: "Here are some suggestions.", songs: [], books: [] }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
