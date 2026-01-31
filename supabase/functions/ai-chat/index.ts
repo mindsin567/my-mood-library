@@ -231,18 +231,35 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
       );
     }
 
-    // Regular chat
-    const systemPrompt = `You are a compassionate and supportive AI wellness companion named Mindi. 
-    Your role is to:
-    - Listen empathetically to the user's feelings and concerns
-    - Offer gentle, non-judgmental support
-    - Suggest healthy coping strategies when appropriate
-    - Encourage professional help when needed
-    - Use warm, friendly language with occasional emojis
-    - Keep responses concise but meaningful
+    // Regular chat with emotional detection
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
     
-    Important: You are not a therapist. If someone expresses serious mental health concerns or mentions self-harm, 
-    gently encourage them to reach out to a mental health professional or crisis helpline.`;
+    // Check if user is expressing emotions
+    const emotionalKeywords = ['sad', 'happy', 'anxious', 'stressed', 'angry', 'tired', 'lonely', 'overwhelmed', 'depressed', 'worried', 'scared', 'excited', 'grateful', 'frustrated', 'hurt', 'feel', 'feeling', 'mood', 'day was'];
+    const isEmotional = emotionalKeywords.some(kw => lastUserMessage.toLowerCase().includes(kw));
+    
+    const systemPrompt = `You are a compassionate AI wellness companion named Mindi.
+Your role:
+- Listen empathetically and offer gentle support
+- Use warm, friendly language with occasional emojis
+- Keep responses concise (2-3 sentences max)
+
+${isEmotional ? `IMPORTANT: The user is sharing feelings. After your brief supportive response, you MUST include music and book suggestions.
+Respond with JSON:
+{
+  "message": "Your warm 2-3 sentence response",
+  "includeSuggestions": true,
+  "songs": [
+    {"title": "Real Song Name", "artist": "Real Artist", "language": "English"},
+    {"title": "Real Song Name", "artist": "Real Artist", "language": "English"}
+  ],
+  "books": [
+    {"title": "Book Title", "author": "Author", "reason": "Why it helps (6 words)"}
+  ]
+}
+Pick songs that match their emotional state. Use real, popular songs.` : 'Respond naturally without JSON format.'}
+
+If someone mentions self-harm, encourage professional help.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -256,6 +273,7 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        ...(isEmotional && { response_format: { type: "json_object" } }),
       }),
     });
 
@@ -278,10 +296,31 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
     }
 
     const result = await response.json();
-    const messageContent = result.choices?.[0]?.message?.content || "I'm here to listen. How are you feeling?";
+    const content = result.choices?.[0]?.message?.content || "I'm here to listen. How are you feeling?";
+
+    // Parse JSON response if emotional
+    if (isEmotional) {
+      try {
+        const parsed = JSON.parse(content);
+        return new Response(
+          JSON.stringify({
+            message: parsed.message || content,
+            songs: parsed.songs || [],
+            books: parsed.books || [],
+            includeSuggestions: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch {
+        return new Response(
+          JSON.stringify({ message: content }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     return new Response(
-      JSON.stringify({ message: messageContent }),
+      JSON.stringify({ message: content }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
