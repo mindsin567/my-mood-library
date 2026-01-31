@@ -231,35 +231,65 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
       );
     }
 
-    // Regular chat with emotional detection
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    // Regular chat with conversational suggestion flow
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    const conversationHistory = messages.map((m: {role: string, content: string}) => m.content.toLowerCase()).join(' ');
     
-    // Check if user is expressing emotions
-    const emotionalKeywords = ['sad', 'happy', 'anxious', 'stressed', 'angry', 'tired', 'lonely', 'overwhelmed', 'depressed', 'worried', 'scared', 'excited', 'grateful', 'frustrated', 'hurt', 'feel', 'feeling', 'mood', 'day was'];
-    const isEmotional = emotionalKeywords.some(kw => lastUserMessage.toLowerCase().includes(kw));
+    // Check for emotional content
+    const emotionalKeywords = ['sad', 'happy', 'anxious', 'stressed', 'angry', 'tired', 'lonely', 'overwhelmed', 'depressed', 'worried', 'scared', 'excited', 'frustrated', 'hurt', 'feel', 'feeling', 'mood', 'day was', 'not good', 'bad day', 'great day', 'low', 'down'];
+    const isEmotional = emotionalKeywords.some(kw => lastUserMessage.includes(kw));
     
-    const systemPrompt = `You are a compassionate AI wellness companion named Mindi.
-Your role:
-- Listen empathetically and offer gentle support
-- Use warm, friendly language with occasional emojis
-- Keep responses concise (2-3 sentences max)
+    // Check if user wants suggestions
+    const wantsSuggestions = ['yes', 'sure', 'okay', 'ok', 'yeah', 'yep', 'please', 'suggest', 'recommend'].some(w => lastUserMessage.includes(w));
+    const declinesSuggestions = ['no', 'nope', 'not now', 'maybe later', 'skip'].some(w => lastUserMessage.includes(w));
+    
+    // Check if AI already asked about suggestions in conversation
+    const alreadyAskedAboutSuggestions = conversationHistory.includes('would you like me to suggest');
+    const alreadyAskedAboutLanguage = conversationHistory.includes('which language') || conversationHistory.includes('what language');
+    
+    // Detect language preference
+    const languages = ['english', 'hindi', 'spanish', 'korean', 'japanese', 'arabic', 'french', 'tamil', 'punjabi', 'telugu', 'any'];
+    const detectedLanguage = languages.find(lang => lastUserMessage.includes(lang));
+    
+    let systemPrompt = `You are Mindi, a warm and empathetic wellness companion.
+Keep responses brief (2-3 sentences max). Use occasional emojis.
 
-${isEmotional ? `IMPORTANT: The user is sharing feelings. After your brief supportive response, you MUST include music and book suggestions.
+CONVERSATION FLOW for emotional messages:
+1. First, acknowledge their feelings warmly
+2. Then ask: "Would you like me to suggest some music and books to help? 🎵📚"
+3. If they say yes, ask: "What language would you like the songs in? (English, Hindi, Spanish, Korean, or any)"
+4. Once you have the language, provide suggestions
+
+Current context:
+- User shared emotions: ${isEmotional}
+- Already asked about suggestions: ${alreadyAskedAboutSuggestions}
+- Already asked about language: ${alreadyAskedAboutLanguage}
+- User wants suggestions: ${wantsSuggestions}
+- User declines suggestions: ${declinesSuggestions}
+- Detected language preference: ${detectedLanguage || 'none'}`;
+
+    // Determine if we should provide suggestions with this response
+    const shouldProvideSuggestions = alreadyAskedAboutLanguage && detectedLanguage;
+    
+    if (shouldProvideSuggestions) {
+      systemPrompt += `
+
+The user has chosen ${detectedLanguage} songs. NOW provide suggestions.
 Respond with JSON:
 {
-  "message": "Your warm 2-3 sentence response",
-  "includeSuggestions": true,
+  "message": "Brief warm message (1 sentence)",
   "songs": [
-    {"title": "Real Song Name", "artist": "Real Artist", "language": "English"},
-    {"title": "Real Song Name", "artist": "Real Artist", "language": "English"}
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"},
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"},
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"}
   ],
   "books": [
-    {"title": "Book Title", "author": "Author", "reason": "Why it helps (6 words)"}
-  ]
+    {"title": "Book Title", "author": "Author", "reason": "Brief reason (5 words)"}
+  ],
+  "includeSuggestions": true
 }
-Pick songs that match their emotional state. Use real, popular songs.` : 'Respond naturally without JSON format.'}
-
-If someone mentions self-harm, encourage professional help.`;
+Use REAL, POPULAR songs that match their emotional state.`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -273,7 +303,7 @@ If someone mentions self-harm, encourage professional help.`;
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        ...(isEmotional && { response_format: { type: "json_object" } }),
+        ...(shouldProvideSuggestions && { response_format: { type: "json_object" } }),
       }),
     });
 
@@ -298,8 +328,8 @@ If someone mentions self-harm, encourage professional help.`;
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || "I'm here to listen. How are you feeling?";
 
-    // Parse JSON response if emotional
-    if (isEmotional) {
+    // Parse JSON response if we're providing suggestions
+    if (shouldProvideSuggestions) {
       try {
         const parsed = JSON.parse(content);
         return new Response(

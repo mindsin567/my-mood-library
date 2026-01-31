@@ -16,8 +16,9 @@ interface Song {
   title: string;
   artist: string;
   language?: string;
-  audioUrl?: string;
+  spotifyId?: string;
   albumArt?: string;
+  previewUrl?: string;
 }
 
 interface Book {
@@ -37,7 +38,7 @@ const Chatbot = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm Mindi, your wellness companion. Share how you're feeling and I'll suggest some music and books to help. 💚" }
+    { role: 'assistant', content: "Hi! I'm Mindi, your wellness companion. 💚 How are you feeling today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,16 +50,16 @@ const Chatbot = () => {
     }
   }, [messages]);
 
-  const fetchMusicPreviews = async (songs: Song[]): Promise<Song[]> => {
+  const fetchSpotifyTracks = async (songs: Song[]): Promise<Song[]> => {
     try {
-      const response = await supabase.functions.invoke('music-search', {
+      const response = await supabase.functions.invoke('spotify-search', {
         body: { songs }
       });
       if (response.data?.songs) {
         return response.data.songs;
       }
     } catch (error) {
-      console.error('Music search error:', error);
+      console.error('Spotify search error:', error);
     }
     return songs;
   };
@@ -86,10 +87,10 @@ const Chatbot = () => {
         content: response.data.message || "I'm here to help. Could you tell me more?"
       };
 
-      // If AI included suggestions, fetch real music previews
-      if (response.data.songs && response.data.songs.length > 0) {
-        const songsWithPreviews = await fetchMusicPreviews(response.data.songs);
-        assistantMessage.songs = songsWithPreviews;
+      // If AI included suggestions, fetch Spotify track info
+      if (response.data.includeSuggestions && response.data.songs?.length > 0) {
+        const songsWithSpotify = await fetchSpotifyTracks(response.data.songs);
+        assistantMessage.songs = songsWithSpotify;
         assistantMessage.books = response.data.books || [];
       }
 
@@ -120,7 +121,7 @@ const Chatbot = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             AI <span className="text-gradient-primary">Wellness Chat</span>
           </h1>
-          <p className="text-muted-foreground">Share your feelings and get personalized music & book suggestions.</p>
+          <p className="text-muted-foreground">Share your feelings and I'll suggest music & books when you're ready.</p>
         </div>
 
         <Card className="flex-1 flex flex-col overflow-hidden">
@@ -153,7 +154,7 @@ const Chatbot = () => {
                       )}
                     </div>
                     
-                    {/* Inline music player */}
+                    {/* Inline Spotify player */}
                     {message.role === 'assistant' && message.songs && message.songs.length > 0 && (
                       <ChatMusicPlayer songs={message.songs} />
                     )}
