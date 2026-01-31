@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Bot, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -9,18 +9,35 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
-import RecommendationsDialog from '@/components/RecommendationsDialog';
+import ChatMusicPlayer from '@/components/ChatMusicPlayer';
+import ChatBookSuggestion from '@/components/ChatBookSuggestion';
+
+interface Song {
+  title: string;
+  artist: string;
+  language?: string;
+  audioUrl?: string;
+  albumArt?: string;
+}
+
+interface Book {
+  title: string;
+  author: string;
+  reason: string;
+}
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  songs?: Song[];
+  books?: Book[];
 }
 
 const Chatbot = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm your wellness companion. How are you feeling today? I'm here to listen and support you on your mental wellness journey. 💚" }
+    { role: 'assistant', content: "Hi! I'm Mindi, your wellness companion. Share how you're feeling and I'll suggest some music and books to help. 💚" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +48,20 @@ const Chatbot = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const fetchMusicPreviews = async (songs: Song[]): Promise<Song[]> => {
+    try {
+      const response = await supabase.functions.invoke('music-search', {
+        body: { songs }
+      });
+      if (response.data?.songs) {
+        return response.data.songs;
+      }
+    } catch (error) {
+      console.error('Music search error:', error);
+    }
+    return songs;
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !user) return;
@@ -50,10 +81,18 @@ const Chatbot = () => {
 
       if (response.error) throw response.error;
 
-      const assistantMessage: Message = {
+      let assistantMessage: Message = {
         role: 'assistant',
         content: response.data.message || "I'm here to help. Could you tell me more?"
       };
+
+      // If AI included suggestions, fetch real music previews
+      if (response.data.songs && response.data.songs.length > 0) {
+        const songsWithPreviews = await fetchMusicPreviews(response.data.songs);
+        assistantMessage.songs = songsWithPreviews;
+        assistantMessage.books = response.data.books || [];
+      }
+
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
@@ -77,14 +116,11 @@ const Chatbot = () => {
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto h-[calc(100vh-10rem)] flex flex-col">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              AI <span className="text-gradient-primary">Chatbot</span>
-            </h1>
-            <p className="text-muted-foreground">Your personal wellness companion.</p>
-          </div>
-          <RecommendationsDialog />
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            AI <span className="text-gradient-primary">Wellness Chat</span>
+          </h1>
+          <p className="text-muted-foreground">Share your feelings and get personalized music & book suggestions.</p>
         </div>
 
         <Card className="flex-1 flex flex-col overflow-hidden">
@@ -100,19 +136,31 @@ const Chatbot = () => {
                       <Bot className="w-4 h-4 text-primary" />
                     </div>
                   )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-foreground'
-                    }`}
-                  >
-                    {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p>{message.content}</p>
+                  <div className={`max-w-[85%] ${message.role === 'user' ? '' : ''}`}>
+                    <div
+                      className={`rounded-2xl px-4 py-3 ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-foreground'
+                      }`}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p>{message.content}</p>
+                      )}
+                    </div>
+                    
+                    {/* Inline music player */}
+                    {message.role === 'assistant' && message.songs && message.songs.length > 0 && (
+                      <ChatMusicPlayer songs={message.songs} />
+                    )}
+                    
+                    {/* Inline book suggestions */}
+                    {message.role === 'assistant' && message.books && message.books.length > 0 && (
+                      <ChatBookSuggestion books={message.books} />
                     )}
                   </div>
                   {message.role === 'user' && (
@@ -145,7 +193,7 @@ const Chatbot = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="Share how you're feeling..."
                 disabled={isLoading}
                 className="flex-1"
               />
