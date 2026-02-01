@@ -16,9 +16,6 @@ interface Song {
   title: string;
   artist: string;
   language?: string;
-  spotifyId?: string;
-  albumArt?: string;
-  previewUrl?: string;
 }
 
 interface Book {
@@ -50,19 +47,6 @@ const Chatbot = () => {
     }
   }, [messages]);
 
-  const fetchSpotifyTracks = async (songs: Song[]): Promise<Song[]> => {
-    try {
-      const response = await supabase.functions.invoke('spotify-search', {
-        body: { songs }
-      });
-      if (response.data?.songs) {
-        return response.data.songs;
-      }
-    } catch (error) {
-      console.error('Spotify search error:', error);
-    }
-    return songs;
-  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !user) return;
@@ -87,10 +71,9 @@ const Chatbot = () => {
         content: response.data.message || "I'm here to help. Could you tell me more?"
       };
 
-      // If AI included suggestions, fetch Spotify track info
+      // If AI included suggestions, add them to the message
       if (response.data.includeSuggestions && response.data.songs?.length > 0) {
-        const songsWithSpotify = await fetchSpotifyTracks(response.data.songs);
-        assistantMessage.songs = songsWithSpotify;
+        assistantMessage.songs = response.data.songs;
         assistantMessage.books = response.data.books || [];
       }
 
