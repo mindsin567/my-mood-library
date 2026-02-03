@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -102,11 +102,11 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+            <img src="/favicon.png" alt="Mindi" className="w-10 h-10 object-contain" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground">MindIn</h1>
+            <h1 className="text-2xl font-bold text-foreground">Mindi</h1>
             <p className="text-sm text-muted-foreground">Your wellness companion</p>
           </div>
         </div>
