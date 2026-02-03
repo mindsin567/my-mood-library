@@ -1,5 +1,4 @@
 import { Play, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 interface Song {
@@ -20,10 +19,6 @@ const ChatMusicPlayer = ({ songs }: ChatMusicPlayerProps) => {
     return `https://www.youtube.com/results?search_query=${query}`;
   };
 
-  const openYouTube = (song: Song) => {
-    window.open(getYouTubeSearchUrl(song), '_blank');
-  };
-
   return (
     <div className="space-y-2 mt-3">
       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -42,16 +37,16 @@ const ChatMusicPlayer = ({ songs }: ChatMusicPlayerProps) => {
                 {song.language && <span className="text-primary ml-1">• {song.language}</span>}
               </p>
             </div>
-            <Button
-              size="sm"
-              variant="default"
-              className="shrink-0 gap-1"
-              onClick={() => openYouTube(song)}
+            <a
+              href={getYouTubeSearchUrl(song)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Play className="w-3 h-3" />
-              Play on YouTube
+              Play
               <ExternalLink className="w-3 h-3 ml-1" />
-            </Button>
+            </a>
           </div>
         </Card>
       ))}
