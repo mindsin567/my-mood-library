@@ -1,4 +1,4 @@
-import { Home, Smile, BookOpen, MessageCircle, BarChart3, User } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, BarChart3, User, LogOut, Smile } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -14,7 +14,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
 
 const menuItems = [
   { title: 'Home', url: '/home', icon: Home },
@@ -35,15 +34,15 @@ const AppSidebar = () => {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <Smile className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+              <img src="/favicon.png" alt="Mindi" className="w-6 h-6 object-contain" />
             </div>
-            <span className="font-semibold text-foreground">MindIn</span>
+            <span className="font-semibold text-foreground">Mindi</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center mx-auto">
-            <Smile className="w-4 h-4 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden mx-auto">
+            <img src="/favicon.png" alt="Mindi" className="w-6 h-6 object-contain" />
           </div>
         )}
       </SidebarHeader>
