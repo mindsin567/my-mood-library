@@ -1,4 +1,4 @@
-import { Home, BookOpen, MessageCircle, BarChart3, User, LogOut, Smile } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, BarChart3, User, LogOut, Smile, Wind } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -21,6 +21,7 @@ const menuItems = [
   { title: 'Digital Library', url: '/library', icon: BookOpen },
   { title: 'AI Chatbot', url: '/chatbot', icon: MessageCircle },
   { title: 'AI Summary', url: '/summary', icon: BarChart3 },
+  { title: 'Breathe', url: '/breathe', icon: Wind },
   { title: 'Profile', url: '/profile', icon: User },
 ];
 
