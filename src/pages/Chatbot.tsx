@@ -10,25 +10,18 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import ChatMusicPlayer from '@/components/ChatMusicPlayer';
-import ChatBookSuggestion from '@/components/ChatBookSuggestion';
 
 interface Song {
   title: string;
   artist: string;
   language?: string;
-}
-
-interface Book {
-  title: string;
-  author: string;
-  reason: string;
+  youtubeUrl?: string;
 }
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   songs?: Song[];
-  books?: Book[];
 }
 
 const Chatbot = () => {
@@ -74,7 +67,6 @@ const Chatbot = () => {
       // If AI included suggestions, add them to the message
       if (response.data.includeSuggestions && response.data.songs?.length > 0) {
         assistantMessage.songs = response.data.songs;
-        assistantMessage.books = response.data.books || [];
       }
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -140,11 +132,6 @@ const Chatbot = () => {
                     {/* Inline Spotify player */}
                     {message.role === 'assistant' && message.songs && message.songs.length > 0 && (
                       <ChatMusicPlayer songs={message.songs} />
-                    )}
-                    
-                    {/* Inline book suggestions */}
-                    {message.role === 'assistant' && message.books && message.books.length > 0 && (
-                      <ChatBookSuggestion books={message.books} />
                     )}
                   </div>
                   {message.role === 'user' && (
