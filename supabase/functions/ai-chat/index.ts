@@ -256,7 +256,7 @@ Keep responses brief (2-3 sentences max). Use occasional emojis.
 
 CONVERSATION FLOW for emotional messages:
 1. First, acknowledge their feelings warmly
-2. Then ask: "Would you like me to suggest some music and books to help? 🎵📚"
+2. Then ask: "Would you like me to suggest some music to help? 🎵"
 3. If they say yes, ask: "What language would you like the songs in? (English, Hindi, Spanish, Korean, or any)"
 4. Once you have the language, provide suggestions
 
@@ -279,16 +279,13 @@ Respond with JSON:
 {
   "message": "Brief warm message (1 sentence)",
   "songs": [
-    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"},
-    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"},
-    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}"}
-  ],
-  "books": [
-    {"title": "Book Title", "author": "Author", "reason": "Brief reason (5 words)"}
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}", "youtubeUrl": "https://www.youtube.com/results?search_query=Real+Popular+Song+Real+Artist+official+audio"},
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}", "youtubeUrl": "https://www.youtube.com/results?search_query=Real+Popular+Song+Real+Artist+official+audio"},
+    {"title": "Real Popular Song", "artist": "Real Artist", "language": "${detectedLanguage}", "youtubeUrl": "https://www.youtube.com/results?search_query=Real+Popular+Song+Real+Artist+official+audio"}
   ],
   "includeSuggestions": true
 }
-Use REAL, POPULAR songs that match their emotional state.`;
+Use REAL, POPULAR songs that match their emotional state. For each song, create the youtubeUrl by URL-encoding the search query: https://www.youtube.com/results?search_query={title}+{artist}+official+audio`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -336,7 +333,6 @@ Use REAL, POPULAR songs that match their emotional state.`;
           JSON.stringify({
             message: parsed.message || content,
             songs: parsed.songs || [],
-            books: parsed.books || [],
             includeSuggestions: true
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
