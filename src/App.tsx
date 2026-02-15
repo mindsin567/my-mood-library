@@ -12,6 +12,7 @@ import Library from "./pages/Library";
 import Chatbot from "./pages/Chatbot";
 import Summary from "./pages/Summary";
 import Profile from "./pages/Profile";
+import Breathe from "./pages/Breathe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const AppRoutes = () => {
       <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
       <Route path="/summary" element={<ProtectedRoute><Summary /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/breathe" element={<ProtectedRoute><Breathe /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
