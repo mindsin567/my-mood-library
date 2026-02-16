@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Wind, Play, Pause, RotateCcw } from 'lucide-react';
+import { Wind, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useBreathingAudio } from '@/hooks/useBreathingAudio';
 
 type Technique = {
   name: string;
@@ -51,7 +55,12 @@ const Breathe = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [cycles, setCycles] = useState(0);
   const [scale, setScale] = useState(1);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundVolume, setSoundVolume] = useState(0.5);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStepRef = useRef(0);
+
+  const { startAmbient, stopAmbient, playChime } = useBreathingAudio({ volume: soundEnabled ? soundVolume : 0 });
 
   const totalStepDuration = selectedTechnique.steps[currentStep]?.duration || 1;
 
@@ -83,7 +92,7 @@ const Breathe = () => {
     };
   }, [isActive, currentStep, selectedTechnique]);
 
-  // Animate the breathing circle
+  // Animate the breathing circle + play chime on step change
   useEffect(() => {
     if (!isActive) {
       setScale(1);
@@ -94,16 +103,20 @@ const Breathe = () => {
       setScale(1.5);
     } else if (step.label === 'Breathe Out') {
       setScale(0.8);
-    } else {
-      // Hold — keep current scale
     }
-  }, [currentStep, isActive, selectedTechnique]);
+    // Play chime on each step transition
+    if (prevStepRef.current !== currentStep || currentStep === 0) {
+      playChime();
+      prevStepRef.current = currentStep;
+    }
+  }, [currentStep, isActive, selectedTechnique, playChime]);
 
   const start = () => {
     setIsActive(true);
     setCurrentStep(0);
     setCycles(0);
     setTimeLeft(selectedTechnique.steps[0].duration);
+    startAmbient();
   };
 
   const togglePause = () => setIsActive(prev => !prev);
@@ -114,6 +127,7 @@ const Breathe = () => {
     setCycles(0);
     setTimeLeft(0);
     setScale(1);
+    stopAmbient();
   };
 
   const selectTechnique = (t: Technique) => {
@@ -132,6 +146,35 @@ const Breathe = () => {
           </h1>
           <p className="text-muted-foreground">Calm your mind with guided breathing techniques</p>
         </div>
+
+        {/* Sound controls */}
+        <Card className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="sound-toggle"
+                checked={soundEnabled}
+                onCheckedChange={setSoundEnabled}
+              />
+              <Label htmlFor="sound-toggle" className="text-sm flex items-center gap-1.5">
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                Sound
+              </Label>
+            </div>
+            {soundEnabled && (
+              <div className="flex items-center gap-2 flex-1 min-w-[140px] max-w-[240px]">
+                <span className="text-xs text-muted-foreground">Vol</span>
+                <Slider
+                  value={[soundVolume * 100]}
+                  onValueChange={([v]) => setSoundVolume(v / 100)}
+                  max={100}
+                  step={5}
+                  className="flex-1"
+                />
+              </div>
+            )}
+          </div>
+        </Card>
 
         {/* Technique selector */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
