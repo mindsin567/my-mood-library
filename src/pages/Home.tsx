@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCircle, BarChart3, Award } from 'lucide-react';
+import ThoughtOfTheDay from '@/components/ThoughtOfTheDay';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,6 +125,9 @@ const Home = () => {
             Track your emotions and reflect on your mental wellness journey.
           </p>
         </div>
+
+        {/* Thought of the Day */}
+        <ThoughtOfTheDay />
 
         {/* Streaks Banner */}
         {(streaks?.current_mood_streak || streaks?.current_journal_streak || achievementCount > 0) && (
