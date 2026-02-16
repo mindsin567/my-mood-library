@@ -77,6 +77,14 @@ const Summary = () => {
     fetchAllMoods();
   }, [user]);
 
+  // Auto-generate summary on page load when user has data
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    if (!summary && allMoods.length > 0) {
+      generateSummary();
+    }
+  }, [user, dataLoading, allMoods.length]);
+
   const generateSummary = async () => {
     if (!user) return;
     
@@ -145,13 +153,18 @@ const Summary = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {summary ? (
+                  {isLoading ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Generating your weekly insights...</span>
+                    </div>
+                  ) : summary ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{summary}</ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-muted-foreground">
-                      Click "Generate Summary" to get AI-powered insights about your week.
+                      No mood data yet. Start tracking to get AI-powered insights!
                     </p>
                   )}
                 </CardContent>
@@ -165,7 +178,12 @@ const Summary = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {suggestions ? (
+                  {isLoading ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Generating suggestions...</span>
+                    </div>
+                  ) : suggestions ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{suggestions}</ReactMarkdown>
                     </div>
