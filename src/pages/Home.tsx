@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCircle, BarChart3, Award } from 'lucide-react';
 import ThoughtOfTheDay from '@/components/ThoughtOfTheDay';
 import MoodHeatmap from '@/components/MoodHeatmap';
+import QuickMoodCheckin from '@/components/QuickMoodCheckin';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,6 +130,9 @@ const Home = () => {
 
         {/* Thought of the Day */}
         <ThoughtOfTheDay />
+
+        {/* Quick Mood Check-in */}
+        <QuickMoodCheckin />
 
         {/* Streaks Banner */}
         {(streaks?.current_mood_streak || streaks?.current_journal_streak || achievementCount > 0) && (
