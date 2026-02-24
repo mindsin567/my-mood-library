@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCircle, BarChart3, Award } from 'lucide-react';
 import ThoughtOfTheDay from '@/components/ThoughtOfTheDay';
+import MoodHeatmap from '@/components/MoodHeatmap';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -180,6 +181,9 @@ const Home = () => {
             </Card>
           ))}
         </div>
+
+        {/* Mood Heatmap */}
+        <MoodHeatmap />
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
