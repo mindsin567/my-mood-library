@@ -15,7 +15,7 @@ interface Song {
   title: string;
   artist: string;
   language?: string;
-  audioUrl?: string | null;
+  spotifyId?: string | null;
   albumArt?: string | null;
 }
 
