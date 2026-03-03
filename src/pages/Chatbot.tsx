@@ -15,7 +15,8 @@ interface Song {
   title: string;
   artist: string;
   language?: string;
-  youtubeUrl?: string;
+  audioUrl?: string | null;
+  albumArt?: string | null;
 }
 
 interface Message {
@@ -64,9 +65,20 @@ const Chatbot = () => {
         content: response.data.message || "I'm here to help. Could you tell me more?"
       };
 
-      // If AI included suggestions, add them to the message
+      // If AI included song suggestions, fetch Deezer previews
       if (response.data.includeSuggestions && response.data.songs?.length > 0) {
-        assistantMessage.songs = response.data.songs;
+        try {
+          const musicRes = await supabase.functions.invoke('music-search', {
+            body: { songs: response.data.songs }
+          });
+          if (musicRes.data?.songs) {
+            assistantMessage.songs = musicRes.data.songs;
+          } else {
+            assistantMessage.songs = response.data.songs;
+          }
+        } catch {
+          assistantMessage.songs = response.data.songs;
+        }
       }
 
       setMessages(prev => [...prev, assistantMessage]);
