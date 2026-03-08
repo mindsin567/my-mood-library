@@ -126,7 +126,7 @@ const Chatbot = () => {
         </div>
 
         {/* Chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+        <div className="flex-1 flex flex-col overflow-hidden rounded-3xl border border-border/40 bg-card/80 backdrop-blur-md shadow-card">
           <ScrollArea className="flex-1 p-5" ref={scrollRef}>
             <div className="space-y-5">
               {messages.map((message, index) => (
