@@ -107,7 +107,11 @@ const Chatbot = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-3xl mx-auto h-[calc(100vh-10rem)] flex flex-col">
+      <div className="max-w-3xl mx-auto h-[calc(100vh-10rem)] flex flex-col relative">
+        {/* Decorative background blobs */}
+        <div className="pointer-events-none absolute -top-20 -left-32 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -right-24 w-64 h-64 rounded-full bg-primary/8 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-accent/3 blur-[100px]" />
         {/* Header */}
         <div className="mb-4 flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
