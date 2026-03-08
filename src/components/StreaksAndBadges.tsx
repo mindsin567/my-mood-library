@@ -143,30 +143,12 @@ const StreaksAndBadges = () => {
       ]);
       if (!user) return;
 
-      const [streaksRes, achievementsRes] = await Promise.all([
-        supabase
-          .from('user_streaks')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('user_achievements')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('earned_at', { ascending: false }),
-      ]);
-
-      if (streaksRes.data) {
-        setStreaks(streaksRes.data);
-      }
-      if (achievementsRes.data) {
-        setEarnedAchievements(achievementsRes.data);
-      }
-      setLoading(false);
+      // Already fetched above in the new useEffect
     };
-
-    fetchData();
   }, [user]);
+
+  // Moved fetch logic into the useEffect above — this block is now handled there.
+  // (see the replaced useEffect)
 
   const isAchievementEarned = (achievementName: string) => {
     return earnedAchievements.some(a => a.achievement_name === achievementName);
