@@ -118,9 +118,29 @@ const StreaksAndBadges = () => {
   const [streaks, setStreaks] = useState<Streak | null>(null);
   const [earnedAchievements, setEarnedAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user) return;
+
+      const [streaksRes, achievementsRes, profileRes] = await Promise.all([
+        supabase
+          .from('user_streaks')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_achievements')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('earned_at', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ]);
       if (!user) return;
 
       const [streaksRes, achievementsRes] = await Promise.all([
