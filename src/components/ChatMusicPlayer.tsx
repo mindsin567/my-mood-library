@@ -48,7 +48,8 @@ const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
       if (res.data?.songs?.[0]?.spotifyId) {
         const newSong = res.data.songs[0];
         setSongs(prev => [newSong, ...prev]);
-        setExpandedIndex(0);
+        // New song added at index 0, ensure it's not collapsed
+        setCollapsedIndices(prev => { const next = new Set(prev); next.delete(0); return next; });
       }
     } catch (err) {
       console.error('Song search error:', err);
