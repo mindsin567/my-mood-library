@@ -1,5 +1,8 @@
-import { Music, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Music, ChevronDown, ChevronUp, Search, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Song {
   title: string;
@@ -13,16 +16,66 @@ interface ChatMusicPlayerProps {
   songs: Song[];
 }
 
-const ChatMusicPlayer = ({ songs }: ChatMusicPlayerProps) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(initialSongs?.[0]?.spotifyId ? 0 : null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [songs, setSongs] = useState<Song[]>(initialSongs || []);
 
   if (!songs || songs.length === 0) return null;
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || isSearching) return;
+    setIsSearching(true);
+    try {
+      const parts = searchQuery.split(' by ');
+      const title = parts[0]?.trim() || searchQuery.trim();
+      const artist = parts[1]?.trim() || '';
+
+      const res = await supabase.functions.invoke('music-search', {
+        body: { songs: [{ title, artist }] },
+      });
+
+      if (res.data?.songs?.[0]?.spotifyId) {
+        const newSong = res.data.songs[0];
+        setSongs(prev => [newSong, ...prev]);
+        setExpandedIndex(0);
+      }
+    } catch (err) {
+      console.error('Song search error:', err);
+    } finally {
+      setIsSearching(false);
+      setSearchQuery('');
+    }
+  };
 
   return (
     <div className="mt-3 space-y-1.5">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-1 flex items-center gap-1.5">
         <Music className="w-3 h-3" /> Recommended tracks
       </p>
+
+      {/* Song search box */}
+      <div className="flex gap-1.5 px-1">
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search a song… e.g. Calm Down by Rema"
+          className="h-8 text-xs rounded-lg border-border/50 bg-background/80"
+          disabled={isSearching}
+        />
+        <Button
+          onClick={handleSearch}
+          disabled={!searchQuery.trim() || isSearching}
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 shrink-0 rounded-lg"
+        >
+          {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+        </Button>
+      </div>
+
       <div className="rounded-xl border border-border/50 overflow-hidden bg-background/60 backdrop-blur-sm">
         {songs.map((song, index) => {
           const isExpanded = expandedIndex === index;
@@ -30,7 +83,7 @@ const ChatMusicPlayer = ({ songs }: ChatMusicPlayerProps) => {
           const isLast = index === songs.length - 1;
 
           return (
-            <div key={index}>
+            <div key={`${song.spotifyId || song.title}-${index}`}>
               <button
                 onClick={() => setExpandedIndex(isExpanded ? null : index)}
                 className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
@@ -53,11 +106,7 @@ const ChatMusicPlayer = ({ songs }: ChatMusicPlayerProps) => {
                   </p>
                 </div>
                 {hasSpotify ? (
-                  isExpanded ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
-                  )
+                  isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                 ) : (
                   <span className="text-[9px] text-muted-foreground/40 shrink-0">N/A</span>
                 )}
