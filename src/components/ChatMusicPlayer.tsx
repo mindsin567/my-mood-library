@@ -17,10 +17,19 @@ interface ChatMusicPlayerProps {
 }
 
 const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(initialSongs?.[0]?.spotifyId ? 0 : null);
+  const [collapsedIndices, setCollapsedIndices] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [songs, setSongs] = useState<Song[]>(initialSongs || []);
+
+  const toggleCollapse = (index: number) => {
+    setCollapsedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   if (!songs || songs.length === 0) return null;
 
