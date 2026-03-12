@@ -17,10 +17,19 @@ interface ChatMusicPlayerProps {
 }
 
 const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(initialSongs?.[0]?.spotifyId ? 0 : null);
+  const [collapsedIndices, setCollapsedIndices] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [songs, setSongs] = useState<Song[]>(initialSongs || []);
+
+  const toggleCollapse = (index: number) => {
+    setCollapsedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   if (!songs || songs.length === 0) return null;
 
@@ -39,7 +48,8 @@ const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
       if (res.data?.songs?.[0]?.spotifyId) {
         const newSong = res.data.songs[0];
         setSongs(prev => [newSong, ...prev]);
-        setExpandedIndex(0);
+        // New song added at index 0, ensure it's not collapsed
+        setCollapsedIndices(prev => { const next = new Set(prev); next.delete(0); return next; });
       }
     } catch (err) {
       console.error('Song search error:', err);
@@ -78,17 +88,17 @@ const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
 
       <div className="rounded-xl border border-border/50 overflow-hidden bg-background/60 backdrop-blur-sm">
         {songs.map((song, index) => {
-          const isExpanded = expandedIndex === index;
+          const isCollapsed = collapsedIndices.has(index);
           const hasSpotify = !!song.spotifyId;
           const isLast = index === songs.length - 1;
 
           return (
             <div key={`${song.spotifyId || song.title}-${index}`}>
               <button
-                onClick={() => setExpandedIndex(isExpanded ? null : index)}
+                onClick={() => toggleCollapse(index)}
                 className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
                   hasSpotify ? 'hover:bg-accent/40 cursor-pointer' : 'opacity-50 cursor-default'
-                } ${isExpanded ? 'bg-accent/20' : ''}`}
+                } ${!isCollapsed && hasSpotify ? 'bg-accent/20' : ''}`}
                 disabled={!hasSpotify}
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center shrink-0 overflow-hidden border border-border/30">
@@ -106,18 +116,18 @@ const ChatMusicPlayer = ({ songs: initialSongs }: ChatMusicPlayerProps) => {
                   </p>
                 </div>
                 {hasSpotify ? (
-                  isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                  isCollapsed ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" /> : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                 ) : (
                   <span className="text-[9px] text-muted-foreground/40 shrink-0">N/A</span>
                 )}
               </button>
 
-              {isExpanded && hasSpotify && (
+              {!isCollapsed && hasSpotify && (
                 <div className="px-3 pb-3">
                   <iframe
                     src={`https://open.spotify.com/embed/track/${song.spotifyId}?utm_source=generator&theme=0`}
                     width="100%"
-                    height="152"
+                    height="232"
                     frameBorder="0"
                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                     loading="lazy"
