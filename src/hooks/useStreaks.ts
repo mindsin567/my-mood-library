@@ -99,112 +99,38 @@ export const useStreaks = () => {
     await checkAndAwardAchievements(user.id, 'journal_streak', newStreak);
   };
 
-  const checkAndAwardAchievements = async (userId: string, type: string, value: number) => {
-    const achievements: { name: string; threshold: number }[] = [];
+  const awardIfEarned = async (name: string) => {
+    // Server-side function verifies the user actually qualifies before inserting
+    await supabase.rpc('award_achievement', { _achievement_name: name });
+  };
+
+  const checkAndAwardAchievements = async (_userId: string, type: string, value: number) => {
+    const candidates: string[] = [];
 
     if (type === 'mood_streak') {
-      if (value >= 3) achievements.push({ name: 'Getting Started', threshold: 3 });
-      if (value >= 7) achievements.push({ name: 'Week Warrior', threshold: 7 });
-      if (value >= 30) achievements.push({ name: 'Consistency King', threshold: 30 });
+      if (value >= 3) candidates.push('Getting Started');
+      if (value >= 7) candidates.push('Week Warrior');
+      if (value >= 30) candidates.push('Consistency King');
     }
 
     if (type === 'journal_streak') {
-      if (value >= 3) achievements.push({ name: 'Aspiring Writer', threshold: 3 });
-      if (value >= 7) achievements.push({ name: 'Consistent Writer', threshold: 7 });
+      if (value >= 3) candidates.push('Aspiring Writer');
+      if (value >= 7) candidates.push('Consistent Writer');
     }
 
-    for (const achievement of achievements) {
-      // Check if already earned
-      const { data: existing } = await supabase
-        .from('user_achievements')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('achievement_name', achievement.name)
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from('user_achievements').insert({
-          user_id: userId,
-          achievement_type: type,
-          achievement_name: achievement.name,
-          metadata: { threshold: achievement.threshold }
-        });
-      }
+    for (const name of candidates) {
+      await awardIfEarned(name);
     }
   };
 
   const checkTotalAchievements = async () => {
     if (!user) return;
-
-    // Check total moods
-    const { count: moodCount } = await supabase
-      .from('mood_entries')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    if (moodCount && moodCount >= 20) {
-      const { data: existing } = await supabase
-        .from('user_achievements')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('achievement_name', 'Self-Aware')
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from('user_achievements').insert({
-          user_id: user.id,
-          achievement_type: 'total_moods',
-          achievement_name: 'Self-Aware',
-        });
-      }
-    }
-
-    // Check total journals
-    const { count: journalCount } = await supabase
-      .from('journal_entries')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    if (journalCount && journalCount >= 10) {
-      const { data: existing } = await supabase
-        .from('user_achievements')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('achievement_name', 'Introspective')
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from('user_achievements').insert({
-          user_id: user.id,
-          achievement_type: 'total_journals',
-          achievement_name: 'Introspective',
-        });
-      }
-    }
-
-    // Check calm moods
-    const { count: calmCount } = await supabase
-      .from('mood_entries')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('mood', 'calm');
-
-    if (calmCount && calmCount >= 5) {
-      const { data: existing } = await supabase
-        .from('user_achievements')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('achievement_name', 'Calm Mind')
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from('user_achievements').insert({
-          user_id: user.id,
-          achievement_type: 'mood_count',
-          achievement_name: 'Calm Mind',
-        });
-      }
-    }
+    // The server function checks the real counts; we can just attempt all eligible badges
+    await Promise.all([
+      awardIfEarned('Self-Aware'),
+      awardIfEarned('Introspective'),
+      awardIfEarned('Calm Mind'),
+    ]);
   };
 
   return {

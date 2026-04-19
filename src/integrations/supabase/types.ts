@@ -184,7 +184,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      award_achievement: {
+        Args: { _achievement_name: string }
+        Returns: boolean
+      }
     }
     Enums: {
       mood_type:
