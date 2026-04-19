@@ -64,6 +64,17 @@ const Library = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiReflection, setAiReflection] = useState<string | null>(null);
   const [emotionTags, setEmotionTags] = useState<string[]>([]);
+  const [signedPhotoUrls, setSignedPhotoUrls] = useState<Record<string, string>>({});
+
+  // Extract the storage path from either a stored path or a legacy public URL
+  const getStoragePath = (value: string): string | null => {
+    if (!value) return null;
+    if (value.includes('/journal-photos/')) {
+      return value.split('/journal-photos/')[1] || null;
+    }
+    // Already a path like "<user_id>/<file>"
+    return value;
+  };
 
   const fetchEntries = async () => {
     if (!user) return;
@@ -77,7 +88,24 @@ const Library = () => {
     if (error) {
       toast({ title: 'Error', description: 'Failed to load entries.', variant: 'destructive' });
     } else {
-      setEntries(data || []);
+      const list = data || [];
+      setEntries(list);
+
+      // Resolve signed URLs for any entries with photos
+      const urlMap: Record<string, string> = {};
+      await Promise.all(
+        list
+          .filter((e) => e.photo_url)
+          .map(async (e) => {
+            const path = getStoragePath(e.photo_url as string);
+            if (!path) return;
+            const { data: signed } = await supabase.storage
+              .from('journal-photos')
+              .createSignedUrl(path, 3600);
+            if (signed?.signedUrl) urlMap[e.id] = signed.signedUrl;
+          })
+      );
+      setSignedPhotoUrls(urlMap);
     }
     setLoading(false);
   };
@@ -128,7 +156,7 @@ const Library = () => {
     if (!content.trim() || !user) return;
     
     setIsSaving(true);
-    let photoUrl: string | null = null;
+    let photoPath: string | null = null;
 
     try {
       if (photoFile) {
@@ -141,11 +169,8 @@ const Library = () => {
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('journal-photos')
-          .getPublicUrl(filePath);
-        
-        photoUrl = urlData.publicUrl;
+        // Store the storage path; signed URLs are generated on read
+        photoPath = filePath;
       }
 
       const { error } = await supabase.from('journal_entries').insert({
@@ -153,7 +178,7 @@ const Library = () => {
         title: title.trim() || null,
         content: content.trim(),
         mood: selectedMood,
-        photo_url: photoUrl,
+        photo_url: photoPath,
         emotion_tags: emotionTags,
         ai_reflection: aiReflection,
       });
@@ -184,7 +209,7 @@ const Library = () => {
   const handleDelete = async (id: string, photoUrl: string | null) => {
     try {
       if (photoUrl && user) {
-        const path = photoUrl.split('/journal-photos/')[1];
+        const path = getStoragePath(photoUrl);
         if (path) {
           await supabase.storage.from('journal-photos').remove([path]);
         }
@@ -395,9 +420,9 @@ const Library = () => {
                       </p>
                     </div>
                   )}
-                  {entry.photo_url && (
+                  {entry.photo_url && signedPhotoUrls[entry.id] && (
                     <img
-                      src={entry.photo_url}
+                      src={signedPhotoUrls[entry.id]}
                       alt="Journal photo"
                       className="mt-4 rounded-lg max-h-64 object-cover"
                     />
