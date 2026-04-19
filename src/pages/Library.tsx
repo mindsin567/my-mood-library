@@ -420,9 +420,9 @@ const Library = () => {
                       </p>
                     </div>
                   )}
-                  {entry.photo_url && (
+                  {entry.photo_url && signedPhotoUrls[entry.id] && (
                     <img
-                      src={entry.photo_url}
+                      src={signedPhotoUrls[entry.id]}
                       alt="Journal photo"
                       className="mt-4 rounded-lg max-h-64 object-cover"
                     />
