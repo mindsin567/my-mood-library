@@ -1,7 +1,7 @@
 project_id = "jhieaxmjusltlzpjktbh"
 
 [functions.ai-chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.music-search]
 verify_jwt = false
