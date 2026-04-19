@@ -185,14 +185,31 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
 
     if (type === "summary") {
       const systemPrompt = `You're a supportive wellness friend. Give brief, warm insights. Max 3 bullet points. Sound human.`;
-      
-      const moodSummary = moods?.length > 0 
-        ? `Moods: ${moods.map((m: {mood: string, note: string | null, created_at: string}) => m.mood).join(', ')}`
-        : 'No moods logged.';
-      
-      const journalSummary = journals?.length > 0
+
+      // Fetch the user's own data server-side (RLS-scoped) — never trust client input
+      const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [moodsRes, journalsRes] = await Promise.all([
+        userClient
+          .from("mood_entries")
+          .select("mood, note, created_at")
+          .eq("user_id", userId)
+          .gte("created_at", sinceIso),
+        userClient
+          .from("journal_entries")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("created_at", sinceIso),
+      ]);
+      const moods = moodsRes.data || [];
+      const journals = journalsRes.data || [];
+
+      const moodSummary = moods.length > 0
+        ? `Moods: ${moods.map((m: { mood: string }) => m.mood).join(", ")}`
+        : "No moods logged.";
+
+      const journalSummary = journals.length > 0
         ? `Journals: ${journals.length} entries`
-        : 'No journals.';
+        : "No journals.";
 
       const userContent = `${moodSummary}\n${journalSummary}\n\nGive 2-3 quick observations about my week.`;
 
