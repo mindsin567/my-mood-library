@@ -156,7 +156,7 @@ const Library = () => {
     if (!content.trim() || !user) return;
     
     setIsSaving(true);
-    let photoUrl: string | null = null;
+    let photoPath: string | null = null;
 
     try {
       if (photoFile) {
@@ -169,11 +169,8 @@ const Library = () => {
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('journal-photos')
-          .getPublicUrl(filePath);
-        
-        photoUrl = urlData.publicUrl;
+        // Store the storage path; signed URLs are generated on read
+        photoPath = filePath;
       }
 
       const { error } = await supabase.from('journal_entries').insert({
@@ -181,7 +178,7 @@ const Library = () => {
         title: title.trim() || null,
         content: content.trim(),
         mood: selectedMood,
-        photo_url: photoUrl,
+        photo_url: photoPath,
         emotion_tags: emotionTags,
         ai_reflection: aiReflection,
       });
