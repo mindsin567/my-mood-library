@@ -209,7 +209,7 @@ const Library = () => {
   const handleDelete = async (id: string, photoUrl: string | null) => {
     try {
       if (photoUrl && user) {
-        const path = photoUrl.split('/journal-photos/')[1];
+        const path = getStoragePath(photoUrl);
         if (path) {
           await supabase.storage.from('journal-photos').remove([path]);
         }
