@@ -64,6 +64,17 @@ const Library = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiReflection, setAiReflection] = useState<string | null>(null);
   const [emotionTags, setEmotionTags] = useState<string[]>([]);
+  const [signedPhotoUrls, setSignedPhotoUrls] = useState<Record<string, string>>({});
+
+  // Extract the storage path from either a stored path or a legacy public URL
+  const getStoragePath = (value: string): string | null => {
+    if (!value) return null;
+    if (value.includes('/journal-photos/')) {
+      return value.split('/journal-photos/')[1] || null;
+    }
+    // Already a path like "<user_id>/<file>"
+    return value;
+  };
 
   const fetchEntries = async () => {
     if (!user) return;
@@ -77,7 +88,24 @@ const Library = () => {
     if (error) {
       toast({ title: 'Error', description: 'Failed to load entries.', variant: 'destructive' });
     } else {
-      setEntries(data || []);
+      const list = data || [];
+      setEntries(list);
+
+      // Resolve signed URLs for any entries with photos
+      const urlMap: Record<string, string> = {};
+      await Promise.all(
+        list
+          .filter((e) => e.photo_url)
+          .map(async (e) => {
+            const path = getStoragePath(e.photo_url as string);
+            if (!path) return;
+            const { data: signed } = await supabase.storage
+              .from('journal-photos')
+              .createSignedUrl(path, 3600);
+            if (signed?.signedUrl) urlMap[e.id] = signed.signedUrl;
+          })
+      );
+      setSignedPhotoUrls(urlMap);
     }
     setLoading(false);
   };
