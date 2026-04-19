@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +12,34 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type, moods, journals, journalContent, answers } = await req.json();
+    // --- Authentication: require a valid user JWT ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+
+    const { messages, type, journalContent, answers } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
+
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
@@ -159,14 +185,31 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
 
     if (type === "summary") {
       const systemPrompt = `You're a supportive wellness friend. Give brief, warm insights. Max 3 bullet points. Sound human.`;
-      
-      const moodSummary = moods?.length > 0 
-        ? `Moods: ${moods.map((m: {mood: string, note: string | null, created_at: string}) => m.mood).join(', ')}`
-        : 'No moods logged.';
-      
-      const journalSummary = journals?.length > 0
+
+      // Fetch the user's own data server-side (RLS-scoped) — never trust client input
+      const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const [moodsRes, journalsRes] = await Promise.all([
+        userClient
+          .from("mood_entries")
+          .select("mood, note, created_at")
+          .eq("user_id", userId)
+          .gte("created_at", sinceIso),
+        userClient
+          .from("journal_entries")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("created_at", sinceIso),
+      ]);
+      const moods = moodsRes.data || [];
+      const journals = journalsRes.data || [];
+
+      const moodSummary = moods.length > 0
+        ? `Moods: ${moods.map((m: { mood: string }) => m.mood).join(", ")}`
+        : "No moods logged.";
+
+      const journalSummary = journals.length > 0
         ? `Journals: ${journals.length} entries`
-        : 'No journals.';
+        : "No journals.";
 
       const userContent = `${moodSummary}\n${journalSummary}\n\nGive 2-3 quick observations about my week.`;
 
