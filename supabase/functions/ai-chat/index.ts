@@ -184,8 +184,6 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
     }
 
     if (type === "summary") {
-      const systemPrompt = `You're a supportive wellness friend. Give brief, warm insights. Max 3 bullet points. Sound human.`;
-
       // Fetch the user's own data server-side (RLS-scoped) — never trust client input
       const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [moodsRes, journalsRes] = await Promise.all([
@@ -193,28 +191,70 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
           .from("mood_entries")
           .select("mood, note, created_at")
           .eq("user_id", userId)
-          .gte("created_at", sinceIso),
+          .gte("created_at", sinceIso)
+          .order("created_at", { ascending: true }),
         userClient
           .from("journal_entries")
-          .select("id")
+          .select("content, mood, created_at")
           .eq("user_id", userId)
-          .gte("created_at", sinceIso),
+          .gte("created_at", sinceIso)
+          .order("created_at", { ascending: true }),
       ]);
-      const moods = moodsRes.data || [];
-      const journals = journalsRes.data || [];
+      const moods = (moodsRes.data || []) as Array<{ mood: string; note: string | null; created_at: string }>;
+      const journals = (journalsRes.data || []) as Array<{ content: string; mood: string; created_at: string }>;
+
+      // Build rich context: mood distribution, trajectory, and notes
+      const moodCounts: Record<string, number> = {};
+      moods.forEach((m) => { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
+      const distribution = Object.entries(moodCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([mood, count]) => `${mood} (${count}x)`)
+        .join(", ");
+
+      const dayName = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short" });
+      const trajectory = moods.map((m) => `${dayName(m.created_at)}: ${m.mood}`).join(" → ");
+
+      const moodNotes = moods
+        .filter((m) => m.note && m.note.trim())
+        .slice(-6)
+        .map((m) => `- (${m.mood}) "${m.note}"`)
+        .join("\n");
+
+      const journalSnippets = journals
+        .slice(-3)
+        .map((j) => `- (${j.mood}) "${j.content.slice(0, 200)}${j.content.length > 200 ? "…" : ""}"`)
+        .join("\n");
 
       const moodSummary = moods.length > 0
-        ? `Moods: ${moods.map((m: { mood: string }) => m.mood).join(", ")}`
-        : "No moods logged.";
+        ? `Mood distribution this week: ${distribution}\nDay-by-day: ${trajectory}`
+        : "No moods logged this week.";
 
       const journalSummary = journals.length > 0
-        ? `Journals: ${journals.length} entries`
-        : "No journals.";
+        ? `Journal entries: ${journals.length}`
+        : "No journal entries this week.";
 
-      const userContent = `${moodSummary}\n${journalSummary}\n\nGive 2-3 quick observations about my week.`;
+      const contextBlock = `${moodSummary}\n${journalSummary}${moodNotes ? `\n\nMood notes:\n${moodNotes}` : ""}${journalSnippets ? `\n\nRecent journal snippets:\n${journalSnippets}` : ""}`;
 
-      // Generate summary and suggestions in parallel for faster response
-      const suggestionsPrompt = `Give 2-3 quick, practical tips. One line each. Sound like a friend, not a therapist.`;
+      const systemPrompt = `You are Mindi, a warm, perceptive wellness friend writing a weekly reflection.
+
+Write a short, personal summary (3 bullet points, max 1 sentence each) that:
+- Names a real pattern you notice in their moods (frequency, shifts, or recurring themes from their notes)
+- Reflects empathy about what they're going through — quote or reference their own words when possible
+- Ends with one grounded, hopeful observation about their week
+
+Tone: human, warm, specific. No clichés ("hang in there", "you've got this"), no clinical language, no generic advice. Use markdown bullets (-).`;
+
+      const userContent = `Here's my week:\n\n${contextBlock}`;
+
+      const suggestionsPrompt = `You are Mindi, a thoughtful wellness friend giving personalized suggestions based on someone's actual week.
+
+Give 3 specific, actionable suggestions tailored to the patterns and themes in their data:
+- Each suggestion = 1 short sentence, starts with an action verb
+- Reference their actual situation (their notes, recurring moods, or themes) — not generic advice
+- Mix categories: one for emotional regulation, one practical/behavioral, one for connection or reflection
+- Sound like a friend texting, not a therapist. No "try to" or "consider" — be direct.
+
+Format as markdown bullets (-).`;
 
       const [response, suggestionsResponse] = await Promise.all([
         fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -224,7 +264,7 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userContent },
@@ -238,10 +278,10 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: suggestionsPrompt },
-              { role: "user", content: `${moodSummary}\n\n${journalSummary}` },
+              { role: "user", content: `Here's my week:\n\n${contextBlock}` },
             ],
           }),
         }),
