@@ -213,20 +213,39 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
 
       const userContent = `${moodSummary}\n${journalSummary}\n\nGive 2-3 quick observations about my week.`;
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
+      // Generate summary and suggestions in parallel for faster response
+      const suggestionsPrompt = `Give 2-3 quick, practical tips. One line each. Sound like a friend, not a therapist.`;
+
+      const [response, suggestionsResponse] = await Promise.all([
+        fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userContent },
+            ],
+          }),
         }),
-      });
+        fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: suggestionsPrompt },
+              { role: "user", content: `${moodSummary}\n\n${journalSummary}` },
+            ],
+          }),
+        }),
+      ]);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -246,24 +265,6 @@ Rules: Real popular songs in chosen language. One helpful book. Sound like a fri
 
       const summaryResult = await response.json();
       const summaryContent = summaryResult.choices?.[0]?.message?.content || "Unable to generate summary.";
-
-      // Generate suggestions
-      const suggestionsPrompt = `Give 2-3 quick, practical tips. One line each. Sound like a friend, not a therapist.`;
-
-      const suggestionsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: suggestionsPrompt },
-            { role: "user", content: `${moodSummary}\n\n${journalSummary}` },
-          ],
-        }),
-      });
 
       const suggestionsResult = await suggestionsResponse.json();
       const suggestionsContent = suggestionsResult.choices?.[0]?.message?.content || "Keep tracking your mood daily!";
