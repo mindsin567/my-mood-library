@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.js';
 import { useAuth } from '@/hooks/useAuth';
 export const useStreaks = () => {
     const { user } = useAuth();

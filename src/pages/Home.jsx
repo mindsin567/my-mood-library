@@ -4,7 +4,7 @@ import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, BookOpen, MessageCir
 import ThoughtOfTheDay from '@/components/ThoughtOfTheDay';
 import MoodHeatmap from '@/components/MoodHeatmap';
 import QuickMoodCheckin from '@/components/QuickMoodCheckin';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.js';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';

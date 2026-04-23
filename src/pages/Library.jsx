@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Plus, Trash2, Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon, Image as ImageIcon, X, Sparkles, Tag, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.js';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useStreaks } from '@/hooks/useStreaks';

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, TrendingUp, Lightbulb } from 'lucide-react';
 import { subDays } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.js';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/DashboardLayout';

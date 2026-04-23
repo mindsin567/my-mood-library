@@ -2,7 +2,7 @@ import { Music, ChevronDown, ChevronUp, Search, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.js';
 const ChatMusicPlayer = ({ songs: initialSongs }) => {
     const [collapsedIndices, setCollapsedIndices] = useState(new Set());
     const [searchQuery, setSearchQuery] = useState('');
