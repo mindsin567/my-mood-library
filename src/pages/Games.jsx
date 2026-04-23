@@ -3,7 +3,7 @@ import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon } from 'lucide-react'
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client.js';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import MemoryGame from '@/components/games/MemoryGame';
 import ReactionGame from '@/components/games/ReactionGame';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Smile, Meh, Frown, Zap, Heart, Cloud, Flame, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client.js';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useStreaks } from '@/hooks/useStreaks';
