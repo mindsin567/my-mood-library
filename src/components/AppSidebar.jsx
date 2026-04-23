@@ -17,26 +17,26 @@ const AppSidebar = () => {
     const { state } = useSidebar();
     const { signOut, user } = useAuth();
     const collapsed = state === 'collapsed';
-    return (<Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="p-4">
+    return (<Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="border-b border-sidebar-border p-4">
         {!collapsed && (<div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
               <img src="/favicon.png" alt="Mindi" className="w-6 h-6 object-contain"/>
             </div>
-            <span className="font-semibold text-foreground">Mindi</span>
+            <span className="font-semibold text-sidebar-foreground">Mindi</span>
           </div>)}
         {collapsed && (<div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden mx-auto">
             <img src="/favicon.png" alt="Mindi" className="w-6 h-6 object-contain"/>
           </div>)}
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
+      <SidebarContent className="px-2 py-3">
+        <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (<SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink to={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-accent" activeClassName="bg-primary/10 text-primary font-medium">
+                    <NavLink to={item.url} className="flex items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                       <item.icon className="w-5 h-5 shrink-0"/>
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -47,11 +47,11 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        {!collapsed && (<div className="text-xs text-muted-foreground mb-2 truncate">
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        {!collapsed && (<div className="mb-2 truncate text-xs text-sidebar-foreground/60">
             {user?.email}
           </div>)}
-        <Button variant="ghost" size={collapsed ? 'icon' : 'sm'} onClick={signOut} className="w-full justify-start gap-2">
+        <Button variant="ghost" size={collapsed ? 'icon' : 'sm'} onClick={signOut} className="w-full justify-start gap-2 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
           <LogOut className="w-4 h-4"/>
           {!collapsed && <span>Sign Out</span>}
         </Button>
